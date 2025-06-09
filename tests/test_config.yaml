@@ -1,0 +1,144 @@
+# Configuration de test pour le monitoring
+
+broker:
+  name: "MetaTrader5"
+  account_type: "demo"
+  login: 92887059
+  server: "MetaQuotes-Demo"
+  timeout: 30000
+
+data:
+  symbols: ["EURUSD"]
+  timeframes: ["H1"]
+  lookback: 1000
+  update_interval: 60
+
+features:
+  technical:
+    momentum:
+      - name: "rsi"
+        period: 14
+        overbought: 70
+        oversold: 30
+      - name: "macd"
+        fast_period: 12
+        slow_period: 26
+        signal_period: 9
+    volatility:
+      - name: "bollinger"
+        period: 20
+        std_dev: 2.0
+      - name: "atr"
+        period: 14
+    trend:
+      - name: "adx"
+        period: 14
+        threshold: 25
+      - name: "vwap"
+        period: "1d"
+  behavioral:
+    patterns:
+      - name: "candlestick_patterns"
+        patterns: ["engulfing", "hammer", "doji", "shooting_star"]
+    volatility:
+      - name: "volatility_bursts"
+        threshold: 2.0
+        window: 20
+      - name: "range_breakout"
+        period: 20
+        threshold: 1.5
+    volume:
+      - name: "volume_profile"
+        periods: [1, 5, 15, 60]
+      - name: "tick_imbalance"
+        period: 1000
+  contextual:
+    time:
+      - name: "sessions"
+        sessions: ["eu", "us", "asia"]
+    market:
+      - name: "daily_direction"
+        timeframe: "H1"
+        threshold: 0.001
+      - name: "market_regime"
+        features: ["volatility", "trend", "volume"]
+        n_regimes: 5
+
+models:
+  ml:
+    model_type: "xgboost"
+    params:
+      max_depth: 6
+      learning_rate: 0.1
+      n_estimators: 100
+      objective: "binary:logistic"
+      eval_metric: "auc"
+    early_stopping: 10
+    random_state: 42
+  market_regime:
+    n_regimes: 5
+    random_state: 42
+
+monitoring:
+  features:
+    drift:
+      threshold: 0.1
+      window: 100
+      min_samples: 50
+    alerts:
+      email: "test@example.com"
+      slack: "test_webhook"
+  performance:
+    metrics:
+      accuracy:
+        threshold: 0.6
+        window: 100
+      precision:
+        threshold: 0.6
+        window: 100
+      recall:
+        threshold: 0.6
+        window: 100
+      f1:
+        threshold: 0.6
+        window: 100
+    alerts:
+      degradation_threshold: 0.1
+      min_samples: 50
+  logging:
+    level: "INFO"
+    file: "test_monitoring.log"
+    max_size: 10485760  # 10MB
+    backup_count: 5
+  alerts:
+    email:
+      smtp_server: "smtp.test.com"
+      smtp_port: 587
+      username: "test@example.com"
+      password: "test_password"
+    slack:
+      webhook_url: "https://hooks.slack.com/test"
+    telegram:
+      bot_token: "test_token"
+      chat_id: "test_chat_id"
+
+trading:
+  sessions:
+    eu:
+      start: "08:00"
+      end: "16:00"
+    us:
+      start: "13:00"
+      end: "21:00"
+    asia:
+      start: "00:00"
+      end: "08:00"
+  risk:
+    max_position_size: 0.1
+    max_drawdown: 0.1
+    stop_loss: 0.02
+    take_profit: 0.04
+  execution:
+    max_slippage: 0.0001
+    commission: 0.0001
+    timeout: 30 
