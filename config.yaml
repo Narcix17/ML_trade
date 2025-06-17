@@ -1,113 +1,325 @@
-# Configuration du système de trading algorithmique
+# Configuration de gestion des risques pour le trading live
+risk_management:
+  position_size: 0.02          # 2% du capital par trade
+  max_daily_loss: 0.05         # 5% de perte quotidienne max
+  max_daily_trades: 10         # Maximum 10 trades par jour
+  min_confidence: 0.6          # Confiance minimale pour trader
+  trading_hours: [0, 24]       # Heures de trading (0-24h)
+  max_drawdown: 0.05           # Drawdown maximum 5%
+  stop_loss_atr: 2.0           # Stop-loss en ATR
+  take_profit_atr: 3.0         # Take-profit en ATR
 
-# Paramètres MetaTrader 5
-broker:
-  name: "MetaTrader5"
-  account_type: "demo"
-  login: 92887059
-  server: "MetaQuotes-Demo"
-  password: ""  # À remplir
-  timeout: 30000  # ms
-  symbols:
-    - name: "EURUSD"
-      type: "forex"
-      exchange: "FXCM"
-      point: 0.0001
-      lot_step: 0.01
-      min_lot: 0.01
-      max_lot: 100.0
-      margin_required: 100.0
-    - name: "DAX40"
-      type: "futures"
-      exchange: "EUREX"
-      point: 0.01
-      lot_step: 0.01
-      min_lot: 0.01
-      max_lot: 100.0
-      margin_required: 1000.0
-    - name: "US500"
-      type: "cfd"
-      exchange: "NASDAQ"
-      point: 0.01
-      lot_step: 0.01
-      min_lot: 0.01
-      max_lot: 100.0
-      margin_required: 500.0
-    - name: "USTEC"
-      type: "cfd"
-      exchange: "NASDAQ"
-      point: 0.01
-      lot_step: 0.01
-      min_lot: 0.01
-      max_lot: 100.0
-      margin_required: 500.0
-  timeframes:
-    - name: "M5"
-      minutes: 5
-      primary: true
-    - name: "M15"
-      minutes: 15
-      primary: false
-    - name: "H1"
-      minutes: 60
-      primary: false
-
-# Paramètres de trading
+# Configuration de trading
 trading:
-  min_confidence: 0.5  # Seuil de confiance réduit pour permettre plus de signaux
-  risk_management:
-    max_positions: 3
-    position_size: 0.02  # % du capital
-    max_drawdown: 0.05
-    max_daily_loss: 0.02
-    max_weekly_loss: 0.05
-    max_monthly_loss: 0.10
-    max_leverage: 1.0
-  stops:
-    stop_loss_atr: 2.0
-    take_profit_atr: 3.0
-    trailing_stop: true
-    trailing_step: 0.0001
-    break_even: true
-    break_even_atr: 1.5
-  filters:
-    max_spread: 0.0002
-    min_volume: 1000
-    min_volatility: 0.0001
-    session_filter: false  # Désactivé temporairement pour les tests
-    news_filter: true
+  symbol: "GBPUSD"
+  timeframe: "M5"
+  lot_size: 0.01
+  max_positions: 3
   sessions:
-    eu:
-      start: "08:00"
-      end: "17:00"
-    us:
-      start: "14:00"
-      end: "23:00"
     asia:
-      start: "00:00"
-      end: "09:00"
+      end: 09:00
+      start: 00:00
+    eu:
+      end: '17:00'
+      start: 08:00
     overlap:
-      start: "14:30"
-      end: "16:30"
-      timezone: "Europe/Berlin"
+      end: '16:30'
+      start: '14:30'
+      timezone: Europe/Berlin
+    us:
+      end: '23:00'
+      start: '14:00'
 
-# Configuration du clustering pour la détection des régimes de marché
-clustering:
-  n_clusters: 5
-  random_state: 42
-  max_iter: 1000
-  n_init: 10
-  features:
-    - volatility
-    - trend
-    - volume
-  metrics:
-    - silhouette
-    - calinski_harabasz
-    - davies_bouldin
+# Configuration de training
+training:
+  symbol: "GBPUSD"
+  timeframes: ["M5"]
+  start_date: "2024-01-01"
+  end_date: "2024-12-31"
+  lookback_periods: 100
+  target_horizon: 10
+  validation_split: 0.2
+  test_split: 0.2
+  total_timesteps: 100000
 
-# Configuration du monitoring des features
+# Configuration de testing
+testing:
+  symbol: "GBPUSD"
+  timeframes: ["M5"]
+  start_date: "2025-01-01"
+  end_date: "2025-06-12"
+
+# Configuration de détection des zones (Phase 1)
+zone_detection:
+  window_size: 5               # Périodes pour swing high/low (2 avant + 2 après)
+  min_amplitude_pct: 0.25      # Amplitude minimale 0.25% du prix
+  bounce_lookback: 50          # 50 dernières bougies M15 pour compter rebonds
+  validation_lookback: 20      # 20 dernières bougies pour validation
+  confluence_threshold: 2      # Minimum 2 indicateurs alignés
+  max_distance_pct: 2.0        # Distance max pour zones proches
+  psychological_levels: true   # Inclure niveaux psychologiques (00, 50)
+
+# Configuration du modèle ML
+ml:
+  model:
+    type: "xgboost"
+    params:
+      max_depth: 6
+      learning_rate: 0.1
+      n_estimators: 1000
+
+# Configuration du modèle RL
+ppo:
+  learning_rate: 3e-4
+  n_steps: 2048
+  batch_size: 64
+  n_epochs: 10
+
+# Configuration de l'environnement RL
+rl_environment:
+  initial_balance: 100000.0
+  max_position_size: 0.1
+  transaction_cost: 0.0001
+
+# Configuration des features
+features:
+  behavioral:
+    patterns:
+    - name: candlestick_patterns
+      patterns:
+      - engulfing
+      - hammer
+      - doji
+      - shooting_star
+    - name: chart_patterns
+      patterns:
+      - double_top
+      - double_bottom
+      - head_shoulders
+    volatility:
+    - name: volatility_bursts
+      threshold: 2.0
+      window: 20
+    - name: range_breakout
+      period: 20
+      threshold: 1.5
+    volume:
+    - name: volume_profile
+      periods:
+      - 1
+      - 5
+      - 15
+      - 60
+    - name: volume_imbalance
+      period: 20
+    - name: tick_imbalance
+      period: 1000
+  contextual:
+    correlation:
+    - assets:
+      - DAX40
+      - US500
+      - USTEC
+      - EURUSD
+      - GOLD
+      name: cross_asset
+      period: 20
+    - name: sector_rotation
+      period: 60
+      sectors:
+      - tech
+      - finance
+      - energy
+      - healthcare
+    market:
+    - features:
+      - volatility
+      - trend
+      - volume
+      n_regimes: 5
+      name: market_regime
+    - name: daily_direction
+      threshold: 0.001
+      timeframe: H1
+    time:
+    - name: session_time
+      sessions:
+      - eu
+      - us
+      - overlap
+    - name: time_of_day
+      periods:
+      - morning
+      - lunch
+      - afternoon
+      - evening
+  technical:
+    momentum:
+    - name: rsi
+      overbought: 70
+      oversold: 30
+      period: 14
+    - fast_period: 12
+      name: macd
+      signal_period: 9
+      slow_period: 26
+    trend:
+    - name: adx
+      period: 14
+      threshold: 25
+    - name: vwap
+      period: 20
+    volatility:
+    - name: bollinger
+      period: 20
+      std_dev: 2.0
+    - name: atr
+      period: 14
+
+# Configuration du broker
+broker:
+  account_type: demo
+  login: 92887059
+  name: MetaTrader5
+  password: ''
+  server: MetaQuotes-Demo
+  symbols:
+  - exchange: FXCM
+    lot_step: 0.01
+    margin_required: 100.0
+    max_lot: 100.0
+    min_lot: 0.01
+    name: GBPUSD
+    point: 0.0001
+    type: forex
+  - exchange: EUREX
+    lot_step: 0.01
+    margin_required: 1000.0
+    max_lot: 100.0
+    min_lot: 0.01
+    name: DAX40
+    point: 0.01
+    type: futures
+  - exchange: NASDAQ
+    lot_step: 0.01
+    margin_required: 500.0
+    max_lot: 100.0
+    min_lot: 0.01
+    name: US500
+    point: 0.01
+    type: cfd
+  - exchange: NASDAQ
+    lot_step: 0.01
+    margin_required: 500.0
+    max_lot: 100.0
+    min_lot: 0.01
+    name: USTEC
+    point: 0.01
+    type: cfd
+  - exchange: NASDAQ
+    lot_step: 0.01
+    margin_required: 500.0
+    max_lot: 100.0
+    min_lot: 0.01
+    name: US30
+    point: 0.01
+    type: cfd
+  timeframes:
+  - minutes: 5
+    name: M5
+    primary: true
+  - minutes: 15
+    name: M15
+    primary: false
+  - minutes: 60
+    name: H1
+    primary: false
+  timeout: 30000
+
+# Configuration du backtesting
+backtesting:
+  analysis:
+    export:
+      format: html
+      path: reports/backtest
+    metrics:
+    - sharpe
+    - sortino
+    - calmar
+    - max_drawdown
+    - win_rate
+    - profit_factor
+    - expectancy
+    plots:
+    - equity_curve
+    - drawdown
+    - returns_distribution
+    - monthly_returns
+    - regime_analysis
+  execution:
+    impact_factor: 0.0001
+    latency: 0.1
+    market_impact: true
+    partial_fills: true
+  general:
+    commission: 0.0001
+    end_date: '2023-06-01'
+    initial_capital: 100000
+    slippage: 0.0001
+    start_date: '2024-06-01'
+  risk:
+    max_drawdown: 0.05
+    max_positions: 3
+    position_sizing: fixed
+
+# Configuration de l'exécution
+execution:
+  monitoring:
+    check_interval: 1
+    error_cooldown: 300
+    max_errors: 5
+    timeout: 30
+  order:
+    max_slippage: 0.0002
+    retry_attempts: 3
+    retry_delay: 1
+    type: market
+  position:
+    min_close_size: 0.1
+    partial_close: true
+    trailing_step: 0.0001
+    trailing_stop: true
+  risk:
+    max_daily_loss: 0.02
+    max_daily_trades: 10
+    max_position_size: 0.1
+
+# Configuration du monitoring
 monitoring:
+  alerts:
+    email:
+      enabled: true
+      recipients:
+      - recipient@email.com
+      sender: your-email@gmail.com
+      smtp_port: 587
+      smtp_server: smtp.gmail.com
+    telegram:
+      bot_token: ''
+      chat_id: ''
+      enabled: false
+  drift_detection:
+    check_interval: 3600
+    methods:
+    - name: ks_test
+      threshold: 0.05
+      window: 1000
+    - name: hellinger
+      threshold: 0.1
+      window: 1000
+    - name: jensen_shannon
+      threshold: 0.1
+      window: 1000
   features:
     alert_threshold: 0.7
     check_interval: 3600
@@ -119,314 +331,79 @@ monitoring:
       missing_rate: 0.1
       std_shift: 0.3
     window_size: 1000
-  drift_detection:
-    methods:
-      - name: "ks_test"
-        threshold: 0.05
-        window: 1000
-      - name: "hellinger"
-        threshold: 0.1
-        window: 1000
-      - name: "jensen_shannon"
-        threshold: 0.1
-        window: 1000
-    check_interval: 3600  # secondes
+  logging:
+    backup_count: 5
+    file: logs/trading.log
+    format: '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    level: INFO
+    max_size: 10485760
   performance:
     metrics:
-      accuracy:
-        threshold: 0.8
-        degradation_threshold: 0.1
-      precision:
-        threshold: 0.7
-        degradation_threshold: 0.1
-      recall:
-        threshold: 0.7
-        degradation_threshold: 0.1
-      f1:
-        threshold: 0.7
-        degradation_threshold: 0.1
-    window_size: 1000
-    update_frequency: 100
-  system:
-    memory:
-      threshold: 0.8  # 80% d'utilisation
-      check_interval: 60  # secondes
-    cpu:
-      threshold: 0.8  # 80% d'utilisation
-      check_interval: 60  # secondes
-    disk:
-      threshold: 0.9  # 90% d'utilisation
-      check_interval: 300  # secondes
-  logging:
-    level: "INFO"
-    file: "logs/trading.log"
-    max_size: 10485760  # 10MB
-    backup_count: 5
-    format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
-  alerts:
-    email:
-      enabled: true
-      smtp_server: "smtp.gmail.com"
-      smtp_port: 587
-      sender: "your-email@gmail.com"
-      recipients: ["recipient@email.com"]
-    telegram:
-      enabled: false
-      bot_token: ""
-      chat_id: ""
+    - sharpe_ratio
+    - sortino_ratio
+    - max_drawdown
+    - win_rate
+    - profit_factor
+    window_size: 100
 
-# Configuration des features
-features:
-  technical:
-    momentum:
-      - name: rsi
-        period: 14
-        overbought: 70
-        oversold: 30
-      - name: macd
-        fast_period: 12
-        slow_period: 26
-        signal_period: 9
-    volatility:
-      - name: bollinger
-        period: 20
-        std_dev: 2.0
-      - name: atr
-        period: 14
-    trend:
-      - name: adx
-        period: 14
-        threshold: 25
-      - name: vwap
-        period: 20
-  behavioral:
-    patterns:
-      - name: "candlestick_patterns"
-        patterns: ["engulfing", "hammer", "doji", "shooting_star"]
-      - name: "chart_patterns"
-        patterns: ["double_top", "double_bottom", "head_shoulders"]
-    volume:
-      - name: "volume_profile"
-        periods: [1, 5, 15, 60]
-      - name: "volume_imbalance"
-        period: 20
-      - name: "tick_imbalance"
-        period: 1000
-    volatility:
-      - name: "volatility_bursts"
-        threshold: 2.0
-        window: 20
-      - name: "range_breakout"
-        period: 20
-        threshold: 1.5
-  contextual:
-    time:
-      - name: "session_time"
-        sessions: ["eu", "us", "overlap"]
-      - name: "time_of_day"
-        periods: ["morning", "lunch", "afternoon", "evening"]
-    market:
-      - name: "market_regime"
-        features: ["volatility", "trend", "volume"]
-        n_regimes: 5
-      - name: "daily_direction"
-        timeframe: "H1"
-        threshold: 0.001
-    correlation:
-      - name: "cross_asset"
-        assets: ["DAX40", "US500", "USTEC", "EURUSD", "GOLD"]
-        period: 20
-      - name: "sector_rotation"
-        sectors: ["tech", "finance", "energy", "healthcare"]
-        period: 60
-
-# Configuration du labeling
-labeling:
-  method: "triple_barrier"  # triple_barrier, fixed_horizon, dynamic
-  threshold: 0.002  # 0.2% pour les signaux (augmenté de 0.1% à 0.2%)
-  horizon: 20  # Nombre de périodes pour le rendement futur
-  volatility_window: 20  # Fenêtre pour le calcul de la volatilité
-  min_return: 0.0  # Rendement minimum pour considérer un signal
-  triple_barrier:
-    take_profit: 0.002  # 0.2%
-    stop_loss: 0.002    # 0.2%
-    t1: 20  # Horizon temporel
-  fixed_horizon:
-    periods: 20  # Nombre de périodes
-    threshold: 0.002  # Seuil de rendement
-  dynamic:
-    volatility_factor: 2.0  # Multiplicateur de volatilité
-    min_periods: 5  # Périodes minimum
-    max_periods: 50  # Périodes maximum
-
-# Paramètres ML
-ml:
-  model:
-    type: "xgboost"  # xgboost ou lightgbm
-    params:
-      n_estimators: 1000
-      max_depth: 6
-      learning_rate: 0.01
-      subsample: 0.8
-      colsample_bytree: 0.8
-      min_child_weight: 1
-      gamma: 0
-      reg_alpha: 0
-      reg_lambda: 1
-  training:
-    train_test_split: 0.8
-    validation_split: 0.1
-    random_state: 42
-    early_stopping_rounds: 50
-    cv_folds: 5
-    cv_type: "purged"  # purged ou standard
-    embargo_size: 10
-  features:
-    selection:
-      method: "importance"  # importance, correlation, lasso
-      threshold: 0.01
-    scaling:
-      method: "robust"  # robust, standard, minmax
-      window: 1000
-  calibration:
-    method: "isotonic"  # isotonic, platt, none
-    cv_folds: 5
-
-# Paramètres de clustering
+# Configuration du clustering
 clustering:
-  algorithm: "hdbscan"
-  params:
-    min_cluster_size: 50
-    min_samples: 5
-    cluster_selection_epsilon: 0.5
-    metric: "euclidean"
-  reduction:
-    method: "umap"  # umap ou pca
-    n_components: 10
-    n_neighbors: 15
-    min_dist: 0.1
-  features:
-    technical: true
-    behavioral: true
-    contextual: true
+  algorithm: hdbscan
   evaluation:
     silhouette_threshold: 0.3
     stability_threshold: 0.7
-  n_clusters: 5
-  random_state: 42
+  features:
+    behavioral: true
+    contextual: true
+    technical: true
   max_iter: 1000
-  n_init: 10
   metrics:
-    - silhouette
-    - calinski_harabasz
-    - davies_bouldin
+  - silhouette
+  - calinski_harabasz
+  - davies_bouldin
+  n_clusters: 5
+  n_init: 10
+  params:
+    cluster_selection_epsilon: 0.5
+    metric: euclidean
+    min_cluster_size: 50
+    min_samples: 5
+  random_state: 42
+  reduction:
+    method: umap
+    min_dist: 0.1
+    n_components: 10
+    n_neighbors: 15
 
-# Paramètres RL
-rl:
-  agent:
-    type: "ppo"  # ppo ou sac
-    params:
-      learning_rate: 0.0003
-      n_steps: 2048
-      batch_size: 64
-      n_epochs: 10
-      gamma: 0.99
-      gae_lambda: 0.95
-      clip_range: 0.2
-      ent_coef: 0.01
-      vf_coef: 0.5
-      max_grad_norm: 0.5
-  environment:
-    reward:
-      pnl_weight: 1.0
-      drawdown_weight: 0.5
-      turnover_weight: 0.1
-    action:
-      type: "continuous"  # continuous ou discrete
-      bounds: [-1.0, 1.0]
-    observation:
-      market_data: true
-      position: true
-      pnl: true
-      regime: true
-  training:
-    total_timesteps: 1000000
-    eval_freq: 10000
-    n_eval_episodes: 10
-    save_freq: 50000
-    tensorboard_log: "logs/rl"
+# Configuration du labeling
+labeling:
+  dynamic:
+    max_periods: 50
+    min_periods: 5
+    volatility_factor: 2.0
+  fixed_horizon:
+    periods: 20
+    threshold: 0.002
+  horizon: 20
+  method: triple_barrier
+  min_return: 0.0
+  threshold: 0.002
+  triple_barrier:
+    stop_loss: 0.002
+    t1: 20
+    take_profit: 0.002
+  volatility_window: 20
 
-# Paramètres de backtesting
-backtesting:
-  general:
-    initial_capital: 100000
-    commission: 0.0001  # 0.01%
-    slippage: 0.0001  # 0.01%
-    start_date: "2024-06-01"  # Specific start date
-    end_date: "2023-06-01"    # Specific end date
-  execution:
-    latency: 0.1  # secondes
-    partial_fills: true
-    market_impact: true
-    impact_factor: 0.0001
-  risk:
-    position_sizing: "fixed"  # fixed, kelly, optimal
-    max_positions: 3
-    max_drawdown: 0.05
-  analysis:
-    metrics:
-      - "sharpe"
-      - "sortino"
-      - "calmar"
-      - "max_drawdown"
-      - "win_rate"
-      - "profit_factor"
-      - "expectancy"
-    plots:
-      - "equity_curve"
-      - "drawdown"
-      - "returns_distribution"
-      - "monthly_returns"
-      - "regime_analysis"
-    export:
-      format: "html"  # html, pdf, excel
-      path: "reports/backtest"
-
-# Paramètres d'exécution
-execution:
-  order:
-    type: "market"  # market ou limit
-    retry_attempts: 3
-    retry_delay: 1  # secondes
-    max_slippage: 0.0002  # 0.02%
-  position:
-    partial_close: true
-    min_close_size: 0.1  # 10% de la position
-    trailing_stop: true
-    trailing_step: 0.0001  # 0.01%
-  risk:
-    max_position_size: 0.1  # 10% du capital
-    max_daily_trades: 10
-    max_daily_loss: 0.02  # 2% du capital
-  monitoring:
-    check_interval: 1  # seconde
-    timeout: 30  # secondes
-    max_errors: 5
-    error_cooldown: 300  # secondes
-
-# Ajout de la section pour les features avancées
+# Configuration des features avancées
 advanced_features:
   entropy:
     bins: 20
   regime_switching:
     window: 50
-  zscore:
-    columns: [ "rsi", "macd" ]
-    window: 100
   rolling_correlation:
     window: 50
-
-# Paramètres de configuration
-config:
-  # ... (les paramètres de configuration existants)
-  # ... (ajoutez ici les nouveaux paramètres de configuration) 
+  zscore:
+    columns:
+    - rsi
+    - macd
+    window: 100

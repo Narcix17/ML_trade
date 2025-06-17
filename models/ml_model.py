@@ -25,6 +25,7 @@ from monitoring import FeatureMonitor, ModelMonitor
 from datetime import datetime
 from xgboost import XGBClassifier
 from lightgbm import LGBMClassifier
+import os
 
 class MLModel:
     """Gestionnaire de modèles de machine learning."""
@@ -332,6 +333,34 @@ class MLModel:
                     predictions = self.label_encoder.inverse_transform(predictions)
                 return predictions
         
+    def predict_proba(self, X: pd.DataFrame) -> np.ndarray:
+        """
+        Retourne les probabilités prédites pour chaque classe.
+        Args:
+            X: DataFrame des features
+        Returns:
+            np.ndarray: Probabilités pour chaque classe
+        """
+        if self.model is None:
+            raise ValueError("Le modèle doit être entraîné avant la prédiction")
+        # Validation des colonnes
+        if self.columns_ is not None:
+            if not X.columns.equals(pd.Index(self.columns_)):
+                raise ValueError("Les colonnes d'entrée ne correspondent pas à celles utilisées lors du fit.")
+        else:
+            logger.warning("Aucune information sur les colonnes d'entraînement disponible")
+        # Utiliser le calibrateur si présent
+        if self.calibrator is not None:
+            proba = self.calibrator.predict_proba(X)
+        else:
+            proba = self.model.predict_proba(X)
+        # Si label_encoder est présent, réordonner les colonnes pour correspondre à l'ordre des classes
+        if self.label_encoder is not None:
+            # On suppose que proba.shape[1] == len(self.label_encoder.classes_)
+            # Rien à faire si l'ordre est correct
+            pass
+        return proba
+                
     def evaluate(
         self,
         X: pd.DataFrame,
@@ -392,7 +421,7 @@ class MLModel:
             logger.warning(f"Erreur lors du calcul du ROC-AUC: {e}")
             metrics['roc_auc'] = None
         
-        # Matrice de confusion
+            # Matrice de confusion
         metrics['confusion_matrix'] = confusion_matrix(y, y_pred)
         
         # Rapport de classification détaillé
@@ -429,7 +458,7 @@ class MLModel:
                 actual_signals = np.sum((y == 1) | (y == 2))
                 metrics['signal_prediction_ratio'] = predicted_signals / len(y) if len(y) > 0 else 0
                 metrics['actual_signal_ratio'] = actual_signals / len(y) if len(y) > 0 else 0
-        
+            
         return metrics
         
     def _compute_feature_importance(self, feature_names: List[str]) -> None:
@@ -520,6 +549,21 @@ class MLModel:
                     "feature_reference_stats.json"
                 )
                 
+    def get_model_path(self, symbol: str, timeframe: str) -> str:
+        """
+        Construit le chemin du modèle pour un symbole et timeframe donnés.
+        
+        Args:
+            symbol: Symbole de trading (ex: 'EURUSD')
+            timeframe: Timeframe (ex: 'M15')
+            
+        Returns:
+            Chemin du fichier modèle
+        """
+        models_dir = self.config.get('paths', {}).get('models', 'models')
+        model_filename = f"{symbol}_{timeframe}_model.joblib"
+        return os.path.join(models_dir, model_filename)
+                
     def save_model(self, path: str) -> None:
         """
         Sauvegarde le modèle avec toutes les informations nécessaires.
@@ -555,16 +599,38 @@ class MLModel:
         
         try:
             model_data = joblib.load(path)
-            self.model = model_data['model']
-            self.calibrator = model_data.get('calibrator')  # Compatibilité avec anciens modèles
-            self.feature_importance = model_data['feature_importance']
-            self.model_type = model_data['model_type']
-            self.config = model_data['config']
-            self.columns_ = model_data.get('columns_')  # Compatibilité avec anciens modèles
-            self.random_state = model_data.get('random_state', 42)
-            self.last_training_metrics = model_data.get('last_training_metrics')
-            self.label_encoder = model_data.get('label_encoder')  # Compatibilité avec anciens modèles
-            logger.info(f"Modèle chargé: {path}")
+            
+            # Vérifier si c'est un objet MLModel complet
+            if hasattr(model_data, 'model') and hasattr(model_data, 'model_type'):
+                # C'est un objet MLModel complet
+                self.model = model_data.model
+                self.calibrator = getattr(model_data, 'calibrator', None)
+                self.feature_importance = getattr(model_data, 'feature_importance', None)
+                self.model_type = model_data.model_type
+                self.config = getattr(model_data, 'config', {})
+                self.columns_ = getattr(model_data, 'columns_', None)
+                self.random_state = getattr(model_data, 'random_state', 42)
+                self.last_training_metrics = getattr(model_data, 'last_training_metrics', None)
+                self.label_encoder = getattr(model_data, 'label_encoder', None)
+                logger.info(f"Modèle MLModel complet chargé: {path}")
+                
+            elif isinstance(model_data, dict):
+                # C'est un dictionnaire avec les données du modèle
+                self.model = model_data['model']
+                self.calibrator = model_data.get('calibrator')
+                self.feature_importance = model_data['feature_importance']
+                self.model_type = model_data['model_type']
+                self.config = model_data['config']
+                self.columns_ = model_data.get('columns_')
+                self.random_state = model_data.get('random_state', 42)
+                self.last_training_metrics = model_data.get('last_training_metrics')
+                self.label_encoder = model_data.get('label_encoder')
+                logger.info(f"Modèle dictionnaire chargé: {path}")
+                
+            else:
+                # Format inconnu
+                raise ValueError(f"Format de modèle inconnu: {type(model_data)}")
+                
         except Exception as e:
             logger.error(f"Erreur lors du chargement du modèle: {e}")
             raise

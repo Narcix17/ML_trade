@@ -119,29 +119,35 @@ class ModelMonitor:
         window: Optional[int] = None
     ) -> List[Dict]:
         """
-        Vérifie la performance du modèle.
+        Vérifie la performance du modèle et génère des alertes.
         
         Args:
-            metrics: Dictionnaire des métriques actuelles
+            metrics: Dictionnaire des métriques
             model_name: Nom du modèle
-            window: Fenêtre temporelle pour la comparaison
+            window: Fenêtre temporelle pour l'analyse de tendance
             
         Returns:
             Liste des alertes générées
         """
         alerts = []
-        thresholds = self.config['metrics']
+        thresholds = self.config.get('metrics', {})
+        
+        # Handle case where thresholds might be a list
+        if isinstance(thresholds, list):
+            # Convert list to dictionary with default thresholds
+            thresholds = {metric: {'threshold': 0.5} for metric in thresholds}
         
         # Vérification des seuils absolus
-        for metric_name, threshold in thresholds.items():
+        for metric_name, threshold_config in thresholds.items():
             if metric_name in metrics:
-                if metrics[metric_name] < threshold['threshold']:
+                threshold_value = threshold_config.get('threshold', 0.5) if isinstance(threshold_config, dict) else threshold_config
+                if metrics[metric_name] < threshold_value:
                     alerts.append({
                         'type': 'absolute_threshold',
                         'model': model_name,
                         'metric': metric_name,
                         'value': metrics[metric_name],
-                        'threshold': threshold['threshold'],
+                        'threshold': threshold_value,
                         'timestamp': datetime.now()
                     })
                     
@@ -151,7 +157,9 @@ class ModelMonitor:
             for metric_name, value in metrics.items():
                 if metric_name in ref_metrics and not isinstance(value, (list, tuple)):
                     degradation = (ref_metrics[metric_name] - value) / ref_metrics[metric_name]
-                    degradation_threshold = threshold.get('degradation_threshold', 0.1)
+                    degradation_threshold = 0.1  # Default degradation threshold
+                    if isinstance(thresholds.get(metric_name), dict):
+                        degradation_threshold = thresholds[metric_name].get('degradation_threshold', 0.1)
                     if degradation > degradation_threshold:
                         alerts.append({
                             'type': 'relative_degradation',

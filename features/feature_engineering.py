@@ -76,42 +76,63 @@ class FeatureEngineer:
         scale_method: str = 'robust'
     ) -> pd.DataFrame:
         """
-        Génère l'ensemble des features demandées.
+        Génère les features pour un DataFrame donné.
         
         Args:
-            df: DataFrame OHLCV
+            df: DataFrame avec les données OHLCV
             feature_groups: Liste des groupes de features à générer
             dropna: Supprimer les lignes avec NaN
             scale: Normaliser les features
-            scale_method: Méthode de normalisation ('robust' ou 'standard')
+            scale_method: Méthode de normalisation
             
         Returns:
             DataFrame avec les features générées
         """
-        if feature_groups is None:
-            feature_groups = list(self.feature_groups.keys())
-            
-        df = df.copy()
+        # Sauvegarder le DataFrame original
+        df_original = df.copy()
         
+        # Validation des données
+        required_cols = ['open', 'high', 'low', 'close', 'volume']
+        missing_cols = [col for col in required_cols if col not in df.columns]
+        if missing_cols:
+            raise ValueError(f"Colonnes manquantes: {missing_cols}")
+            
         # Calcul des métriques de base
         df = self._compute_base_metrics(df)
         
         # Génération des features par groupe
-        for group in feature_groups:
-            if group not in self.feature_groups:
-                logger.warning(f"Groupe de features non supporté: {group}")
-                continue
-                
-            df = self.feature_groups[group](df)
+        if feature_groups is None:
+            feature_groups = list(self.feature_groups.keys())
             
-        # Gestion des NaN
-        if dropna:
-            initial_len = len(df)
+        for group in feature_groups:
+            if group in self.feature_groups:
+                df = self.feature_groups[group](df)
+            
+        # Suppression des lignes avec NaN seulement si on a assez de données
+        if dropna and len(df) > 0:
+            initial_rows = len(df)
             df = df.dropna()
-            dropped = initial_len - len(df)
-            if dropped > 0:
-                logger.info(f"Suppression de {dropped} lignes avec NaN")
-                
+            dropped_rows = initial_rows - len(df)
+            if dropped_rows > 0:
+                logger.info(f"Suppression de {dropped_rows} lignes avec NaN")
+            
+            # Si on a supprimé toutes les lignes, garder au moins les dernières
+            if len(df) == 0 and initial_rows > 0:
+                logger.warning("Toutes les lignes supprimées à cause des NaN, gardant les dernières lignes")
+                # Recalculer les features sans supprimer les NaN
+                df = self._compute_base_metrics(df_original.copy())
+                df = self._get_technical_features(df)
+                df = self._get_behavioral_features(df)
+                df = self._get_contextual_features(df)
+                # Garder seulement les dernières lignes non-NaN
+                df = df.dropna()
+                if len(df) == 0:
+                    # En dernier recours, garder les dernières lignes même avec des NaN
+                    df = df_original.tail(10).copy()
+                    # Remplacer les NaN par des valeurs par défaut
+                    df = df.fillna(0)
+                    logger.warning("Utilisation des dernières lignes avec remplissage des NaN")
+            
         # Normalisation
         if scale:
             df = self._scale_features(df, method=scale_method)
@@ -373,7 +394,7 @@ class FeatureEngineer:
         daily_prices = df['close'].resample('D').last()
         daily_returns = daily_prices.pct_change(fill_method=None)
         # Forward fill any NaN values that aren't at the start
-        daily_returns = daily_returns.fillna(method='ffill')
+        daily_returns = daily_returns.ffill()
         df['daily_direction'] = daily_returns.reindex(df.index, method='ffill')
         df['daily_direction_signal'] = np.where(
             abs(df['daily_direction']) > daily_config['threshold'],
@@ -399,13 +420,35 @@ class FeatureEngineer:
         if regime_features:
             # Combinaison des features
             regime_score = pd.concat(regime_features, axis=1).mean(axis=1)
-            # Classification en régimes (numérique au lieu de catégoriel)
-            df['market_regime'] = pd.qcut(
-                regime_score,
-                q=regime_config['n_regimes'],
-                labels=False
-            )
-            
+            # Classification en régimes avec gestion des bins dupliqués
+            try:
+                df['market_regime'] = pd.qcut(
+                    regime_score,
+                    q=regime_config['n_regimes'],
+                    labels=False,
+                    duplicates='drop'  # Supprimer les bins dupliqués
+                )
+            except ValueError as e:
+                # Si qcut échoue, utiliser une classification simple
+                logger.warning(f"Erreur qcut pour market_regime: {e}, utilisation d'une classification simple")
+                df['market_regime'] = np.where(
+                    regime_score > regime_score.quantile(0.8),
+                    4,  # Régime très volatil
+                    np.where(
+                        regime_score > regime_score.quantile(0.6),
+                        3,  # Régime volatil
+                        np.where(
+                            regime_score > regime_score.quantile(0.4),
+                            2,  # Régime normal
+                            np.where(
+                                regime_score > regime_score.quantile(0.2),
+                                1,  # Régime calme
+                                0   # Régime très calme
+                            )
+                        )
+                    )
+                )
+        
         # Saisonnalité
         df['day_of_week'] = df.index.dayofweek
         df['month'] = df.index.month
