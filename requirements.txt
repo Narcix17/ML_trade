@@ -39,6 +39,11 @@ requests>=2.26.0
 
 # Reinforcement Learning dependencies
 stable-baselines3[extra]>=2.0.0
-gym>=0.21.0
+gymnasium>=0.29.0
 tensorboard>=2.8.0
-torch>=1.12.0 
+torch>=1.12.0
+
+# Additional dependencies found in codebase
+scipy>=1.7.0
+psutil>=5.8.0
+pathlib2>=2.3.0 

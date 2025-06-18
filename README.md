@@ -11,6 +11,8 @@ Ce projet intègre :
 - **📊 MetaTrader 5** : Intégration directe pour le trading live
 - **📈 Monitoring** : Système de surveillance en temps réel
 - **🎯 Zone Detection** : Détection de zones de support/résistance stratégiques
+- **⚡ Performance Optimization** : Profiling et optimisation des performances
+- **🧪 Testing Framework** : Tests complets et automatisés
 
 ## 🚀 **Performances Exceptionnelles**
 
@@ -34,6 +36,9 @@ cursor/
 │   │   └── __init__.py
 │   ├── 📁 testing/                    # Tests unifiés
 │   │   ├── test_runner.py             # Tests partagés
+│   │   └── __init__.py
+│   ├── 📁 performance/                # 🆕 Optimisation des performances
+│   │   ├── profiler.py                # Profiling et cache
 │   │   └── __init__.py
 │   └── __init__.py
 ├── 📁 trading/                        # 🆕 MODULE TRADING
@@ -65,6 +70,8 @@ cursor/
 │   │   └── __init__.py
 │   ├── ml_model.py                    # Modèle ML
 │   ├── market_regime.py               # Détection de régime de marché
+│   ├── feature_generator.py           # Générateur de features
+│   ├── config_validator.py            # Validation de configuration
 │   └── 📁 saved/                      # Modèles sauvegardés
 ├── 📁 features/                       # INGÉNIERIE DES FEATURES
 │   ├── feature_engineering.py         # Génération de features
@@ -75,20 +82,34 @@ cursor/
 │   ├── system_status.py               # Statut système
 │   ├── cleanup_project.py             # Nettoyage projet
 │   ├── run_tests.py                   # Tests unifiés
+│   ├── list_mt5_symbols.py            # Liste des symboles MT5
 │   └── __init__.py
 ├── 📁 monitoring/                     # MONITORING
 │   ├── feature_monitor.py             # Monitoring des features
-│   └── model_monitor.py               # Monitoring des modèles
+│   ├── model_monitor.py               # Monitoring des modèles
+│   └── __init__.py
 ├── 📁 labeling/                       # GÉNÉRATION DE LABELS
 │   └── label_generator.py             # Générateur de labels
 ├── 📁 docs/                           # DOCUMENTATION
+│   ├── LIVE_TRADING_GUIDE.md          # Guide du trading live
+│   ├── LIVE_TRADING_SUMMARY.md        # Résumé du trading live
+│   ├── PROJECT_SUMMARY.md             # Résumé du projet
+│   └── trading_system_documentation.ipynb
+├── 📁 tests/                          # TESTS UNITAIRES
+│   ├── run_tests.py                   # Lanceur de tests
+│   ├── test_live_trading.py           # Tests du trading live
+│   ├── test_ml_model.py               # Tests des modèles ML
+│   ├── test_monitoring.py             # Tests du monitoring
+│   ├── test_market_regime.py          # Tests des régimes de marché
+│   └── __init__.py
 ├── 📁 reports/                        # RAPPORTS
 ├── 📁 logs/                           # LOGS
 ├── 📁 data/                           # DONNÉES
-├── 📁 tests/                          # TESTS UNITAIRES
+├── 📁 mlruns/                         # MLflow runs
 ├── run.py                             # 🆕 POINT D'ENTRÉE PRINCIPAL
 ├── config.yaml                        # Configuration
 ├── requirements.txt                   # Dépendances
+├── QUICK_START.md                     # Guide de démarrage rapide
 └── README.md                          # Documentation
 ```
 
@@ -138,6 +159,12 @@ python scripts/monitoring.py
 
 # Statut système
 python scripts/system_status.py
+
+# Nettoyage projet
+python scripts/cleanup_project.py
+
+# Liste des symboles MT5
+python scripts/list_mt5_symbols.py
 ```
 
 ## 🔧 **Installation**
@@ -177,18 +204,21 @@ mt5:
 - **56 indicateurs techniques** avancés
 - **Feature engineering** automatique
 - **Validation croisée** et métriques de performance
+- **Calibration** des modèles pour des prédictions fiables
 
 ### **🧠 Reinforcement Learning**
 - **PPO (Proximal Policy Optimization)** pour l'optimisation
 - **Environnement de trading** personnalisé
 - **Reward function** basée sur PnL et gestion des risques
 - **Entraînement continu** avec callbacks
+- **Vectorisation** des environnements pour l'efficacité
 
 ### **📈 Trading Live**
 - **Intégration MT5** directe
 - **Gestion des risques** avancée
 - **Détection de points d'entrée** stratégiques
 - **Monitoring en temps réel**
+- **Stop-loss et take-profit** automatiques
 
 ### **🎯 Zone Detection**
 - **Détection automatique** des zones de support/résistance
@@ -201,6 +231,18 @@ mt5:
 - **Monitoring des modèles** et dérive
 - **Alertes automatiques** pour anomalies
 - **Rapports de performance** détaillés
+
+### **⚡ Performance Optimization**
+- **Profiling** des fonctions critiques
+- **Cache manager** pour les opérations coûteuses
+- **Optimisation des DataFrames** pour la mémoire
+- **Traitement parallèle** avec joblib
+
+### **🧪 Testing Framework**
+- **Tests unitaires** complets
+- **Tests d'intégration** pour tous les composants
+- **Tests de performance** et de robustesse
+- **Validation** des modèles et des données
 
 ## 🔍 **Tests et Validation**
 
@@ -220,7 +262,10 @@ python scripts/run_tests.py --log-level DEBUG
 - ✅ **Connexion MT5** : Test de connectivité
 - ✅ **Feature Engineering** : Génération de features
 - ✅ **Modèles ML** : Chargement et prédiction
-- ✅ **Feature Engineer** : Sauvegarde et chargement
+- ✅ **Modèles RL** : Entraînement et évaluation
+- ✅ **Zone Detection** : Détection et validation
+- ✅ **Monitoring** : Surveillance et alertes
+- ✅ **Performance** : Profiling et optimisation
 
 ## 📈 **Résultats et Performance**
 
@@ -248,6 +293,7 @@ python scripts/run_tests.py --log-level DEBUG
 - **ConfigLoader** : Gestion de configuration avec cache
 - **LoggerSetup** : Logging cohérent dans tout le projet
 - **TestRunner** : Tests unifiés pour tous les composants
+- **PerformanceProfiler** : Profiling et optimisation
 
 ### **Modules Organisés**
 - **utils/** : Utilitaires partagés
@@ -296,6 +342,7 @@ python scripts/run_tests.py --log-level DEBUG
 - **QUICK_START.md** : Guide de démarrage rapide
 - **docs/LIVE_TRADING_GUIDE.md** : Guide du trading live
 - **docs/PROJECT_SUMMARY.md** : Résumé du projet
+- **docs/LIVE_TRADING_SUMMARY.md** : Résumé du trading live
 - **Logs** : Historique détaillé des opérations
 
 ## 🤝 **Contribution**
